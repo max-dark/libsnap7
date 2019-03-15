@@ -4,6 +4,7 @@ project(snap7)
 
 # Snap7 paths and sources
 
+# main lib
 set(SNAP7_SRC_DIR "src")
 set(SNAP7_SRC_CORE_DIR "${SNAP7_SRC_DIR}/core")
 set(SNAP7_SRC_SYS_DIR "${SNAP7_SRC_DIR}/sys")
@@ -13,6 +14,11 @@ set(SNAP7_INCLUDE_DIRS
         "${SNAP7_SRC_SYS_DIR}"
         "${SNAP7_SRC_LIB_DIR}"
         )
+
+# Wrappers
+
+set(SNAP7_WRAPPERS_DIR "release/Wrappers")
+set(SNAP7_CCXX_WRAPPER_DIR "${SNAP7_WRAPPERS_DIR}/c-cpp")
 
 # OS Detect
 
@@ -99,3 +105,23 @@ add_library(snap7 SHARED ${SNAP7_LIB_SRC} ${SNAP7_LIB_HEADERS})
 target_include_directories(snap7 PUBLIC ${SNAP7_SRC_LIB_DIR})
 
 target_link_libraries(snap7 snap7_core)
+
+# C Wrapper
+
+add_library(snap7_ccxx STATIC
+        "${SNAP7_CCXX_WRAPPER_DIR}/snap7.h")
+
+target_link_libraries(snap7_ccxx snap7)
+target_include_directories(snap7_ccxx PUBLIC "${SNAP7_CCXX_WRAPPER_DIR}")
+set_target_properties(snap7_ccxx PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+
+# C++ Wrapper
+
+add_library(snap7++ STATIC
+        "${SNAP7_CCXX_WRAPPER_DIR}/snap7.cpp")
+
+target_link_libraries(snap7++ snap7_ccxx)
+target_include_directories(snap7++ PUBLIC "${SNAP7_CCXX_WRAPPER_DIR}")
+set_target_properties(snap7++ PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
