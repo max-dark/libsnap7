@@ -199,12 +199,14 @@ TConnectionServer::TConnectionServer()
     cs = new TSnapCriticalSection;
     memset(Partners,0,sizeof(Partners));
     FRunning = false;
+	Destroying = false;
     PartnersCount = 0;
 }
 //------------------------------------------------------------------------------
 TConnectionServer::~TConnectionServer()
 {
-    Stop();
+	Destroying = true;
+	Stop();
     delete cs;
 }
 //---------------------------------------------------------------------------
@@ -420,6 +422,7 @@ TSnap7Partner::TSnap7Partner(bool CreateActive)
     BytesRecv     =0;
     SendErrors    =0;
     RecvErrors    =0;
+	Stopping = false;
 }
 //------------------------------------------------------------------------------
 TSnap7Partner::~TSnap7Partner()
