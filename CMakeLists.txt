@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.15)
 
 project(snap7)
 
@@ -36,13 +36,15 @@ endif()
 
 # Snap7 system
 
-set(SNAP7_SYS_SRC
+add_library(snap7_sys STATIC)
+target_sources(snap7_sys
+    PRIVATE
         "${SNAP7_SRC_SYS_DIR}/snap_msgsock.cpp"
         "${SNAP7_SRC_SYS_DIR}/snap_sysutils.cpp"
         "${SNAP7_SRC_SYS_DIR}/snap_tcpsrvr.cpp"
-        "${SNAP7_SRC_SYS_DIR}/snap_threads.cpp")
+        "${SNAP7_SRC_SYS_DIR}/snap_threads.cpp"
 
-set(SNAP7_SYS_HEADERS
+    PUBLIC
         "${SNAP7_SRC_SYS_DIR}/snap_msgsock.h"
         "${SNAP7_SRC_SYS_DIR}/snap_platform.h"
         "${SNAP7_SRC_SYS_DIR}/snap_sysutils.h"
@@ -50,9 +52,9 @@ set(SNAP7_SYS_HEADERS
         "${SNAP7_SRC_SYS_DIR}/snap_threads.h"
         "${SNAP7_SRC_SYS_DIR}/sol_threads.h"
         "${SNAP7_SRC_SYS_DIR}/unix_threads.h"
-        "${SNAP7_SRC_SYS_DIR}/win_threads.h")
+        "${SNAP7_SRC_SYS_DIR}/win_threads.h"
 
-add_library(snap7_sys STATIC ${SNAP7_SYS_SRC} ${SNAP7_SYS_HEADERS})
+)
 
 target_include_directories(snap7_sys PUBLIC ${SNAP7_SRC_SYS_DIR})
 
@@ -63,33 +65,71 @@ set_target_properties(snap7_sys PROPERTIES
 
 # Snap7 core
 
-set(SNAP7_CORE_SRC
-        "${SNAP7_SRC_CORE_DIR}/s7_isotcp.cpp"
-        "${SNAP7_SRC_CORE_DIR}/s7_peer.cpp"
-        "${SNAP7_SRC_CORE_DIR}/s7_text.cpp"
-        "${SNAP7_SRC_CORE_DIR}/s7_micro_client.cpp"
-        "${SNAP7_SRC_CORE_DIR}/s7_client.cpp"
-        "${SNAP7_SRC_CORE_DIR}/s7_partner.cpp"
-        "${SNAP7_SRC_CORE_DIR}/s7_server.cpp")
+add_library(snap7_transport STATIC)
 
-set(SNAP7_CORE_HEADERS
+target_sources(snap7_transport
+    PRIVATE
+        "${SNAP7_SRC_CORE_DIR}/s7_isotcp.cpp"
+        "${SNAP7_SRC_CORE_DIR}/s7_text.cpp"
+    PUBLIC
         "${SNAP7_SRC_CORE_DIR}/s7_firmware.h"
         "${SNAP7_SRC_CORE_DIR}/s7_types.h"
         "${SNAP7_SRC_CORE_DIR}/s7_isotcp.h"
-        "${SNAP7_SRC_CORE_DIR}/s7_peer.h"
         "${SNAP7_SRC_CORE_DIR}/s7_text.h"
+)
+target_include_directories(snap7_transport PUBLIC ${SNAP7_SRC_CORE_DIR})
+target_link_libraries(snap7_transport PUBLIC snap7_sys)
+set_target_properties(snap7_transport PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+
+add_library(snap7_micro_client STATIC)
+target_sources(snap7_micro_client
+    PRIVATE
+        "${SNAP7_SRC_CORE_DIR}/s7_micro_client.cpp"
+        "${SNAP7_SRC_CORE_DIR}/s7_peer.cpp"
+    PUBLIC
         "${SNAP7_SRC_CORE_DIR}/s7_micro_client.h"
+        "${SNAP7_SRC_CORE_DIR}/s7_peer.h"
+)
+target_include_directories(snap7_micro_client PUBLIC ${SNAP7_SRC_CORE_DIR})
+target_link_libraries(snap7_micro_client PUBLIC snap7_transport)
+set_target_properties(snap7_micro_client PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+
+add_library(snap7_client STATIC)
+target_sources(snap7_client
+    PRIVATE
+        "${SNAP7_SRC_CORE_DIR}/s7_client.cpp"
+    PUBLIC
         "${SNAP7_SRC_CORE_DIR}/s7_client.h"
+)
+target_include_directories(snap7_client PUBLIC ${SNAP7_SRC_CORE_DIR})
+target_link_libraries(snap7_client PUBLIC snap7_micro_client)
+set_target_properties(snap7_client PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+
+add_library(snap7_partner STATIC)
+target_sources(snap7_partner
+    PRIVATE
+        "${SNAP7_SRC_CORE_DIR}/s7_partner.cpp"
+    PUBLIC
         "${SNAP7_SRC_CORE_DIR}/s7_partner.h"
-        "${SNAP7_SRC_CORE_DIR}/s7_server.h")
+)
+target_include_directories(snap7_partner PUBLIC ${SNAP7_SRC_CORE_DIR})
+target_link_libraries(snap7_partner PUBLIC snap7_transport)
+set_target_properties(snap7_partner PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
 
-add_library(snap7_core STATIC ${SNAP7_CORE_SRC} ${SNAP7_CORE_HEADERS})
-
-target_include_directories(snap7_core PUBLIC ${SNAP7_SRC_CORE_DIR})
-
-target_link_libraries(snap7_core snap7_sys)
-
-set_target_properties(snap7_core PROPERTIES
+add_library(snap7_server STATIC)
+target_sources(snap7_server
+    PRIVATE
+        "${SNAP7_SRC_CORE_DIR}/s7_server.cpp"
+    PUBLIC
+        "${SNAP7_SRC_CORE_DIR}/s7_server.h"
+)
+target_include_directories(snap7_server PUBLIC ${SNAP7_SRC_CORE_DIR})
+target_link_libraries(snap7_server PUBLIC snap7_transport)
+set_target_properties(snap7_server PROPERTIES
         POSITION_INDEPENDENT_CODE ON)
 
 # Snap7 C interface
@@ -104,7 +144,7 @@ add_library(snap7 SHARED ${SNAP7_LIB_SRC} ${SNAP7_LIB_HEADERS})
 
 target_include_directories(snap7 PUBLIC ${SNAP7_SRC_LIB_DIR})
 
-target_link_libraries(snap7 snap7_core)
+target_link_libraries(snap7 PUBLIC snap7_client snap7_partner snap7_server)
 
 # C Wrapper
 
